@@ -14,7 +14,7 @@ import Json.Decode.Pipeline as Pipeline exposing (required)
 
 type Model
     = Start
-    | Failure
+    | Failure String
     | Loading
     | Success Person
 
@@ -68,6 +68,24 @@ type Msg
     = GetPerson
     | NewPerson (Result Http.Error Person)
 
+buildErrorMessage : Http.Error -> String
+buildErrorMessage httpError =
+    case httpError of
+        Http.BadUrl message ->
+            message
+
+        Http.Timeout ->
+            "Server is taking too long to respond. Please try again later."
+
+        Http.NetworkError ->
+            "Unable to reach server."
+
+        Http.BadStatus statusCode ->
+            "Request failed with status code: " ++ String.fromInt statusCode
+
+        Http.BadBody message ->
+            message
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -77,8 +95,8 @@ update msg model =
         NewPerson (Ok newPerson) ->
             ( Success newPerson, Cmd.none )
 
-        NewPerson (Err _) ->
-            ( Failure, Cmd.none )
+        NewPerson (Err httpError) ->
+            ( Failure (buildErrorMessage httpError), Cmd.none )
 
 ---- VIEW ----
 
@@ -86,7 +104,7 @@ viewHeader : Model -> String
 viewHeader model =
     case model of
         Start -> "Start"
-        Failure -> "Failure"
+        Failure error_message -> "Failure: " ++ error_message
         Loading -> "Loading"
         Success person -> "Success"
 
